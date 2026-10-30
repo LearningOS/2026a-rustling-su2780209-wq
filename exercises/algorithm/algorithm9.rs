@@ -1,9 +1,7 @@
 /*
-	heap
-	This question requires you to implement a binary heap function
+    heap
+    This question requires you to implement a binary heap function
 */
-// I AM NOT DONE
-
 use std::cmp::Ord;
 use std::default::Default;
 
@@ -37,7 +35,17 @@ where
     }
 
     pub fn add(&mut self, value: T) {
-        //TODO
+        self.items.push(value);
+        self.count += 1;
+        let mut i = self.count;
+        while i > 1 {
+            let parent = self.parent_idx(i);
+            if !(self.comparator)(&self.items[i], &self.items[parent]) {
+                break;
+            }
+            self.items.swap(i, parent);
+            i = parent;
+        }
     }
 
     fn parent_idx(&self, idx: usize) -> usize {
@@ -57,8 +65,13 @@ where
     }
 
     fn smallest_child_idx(&self, idx: usize) -> usize {
-        //TODO
-		0
+        let left = self.left_child_idx(idx);
+        let right = self.right_child_idx(idx);
+        if right <= self.count && (self.comparator)(&self.items[right], &self.items[left]) {
+            right
+        } else {
+            left
+        }
     }
 }
 
@@ -84,8 +97,21 @@ where
     type Item = T;
 
     fn next(&mut self) -> Option<T> {
-        //TODO
-		None
+        if self.is_empty() {
+            return None;
+        }
+        let top = self.items.swap_remove(1);
+        self.count -= 1;
+        let mut i = 1;
+        while self.children_present(i) {
+            let child = self.smallest_child_idx(i);
+            if !(self.comparator)(&self.items[child], &self.items[i]) {
+                break;
+            }
+            self.items.swap(child, i);
+            i = child;
+        }
+        Some(top)
     }
 }
 
@@ -150,5 +176,23 @@ mod tests {
         assert_eq!(heap.next(), Some(4));
         heap.add(1);
         assert_eq!(heap.next(), Some(2));
+    }
+}
+
+#[cfg(test)]
+mod edge_cases {
+    use super::*;
+    #[test]
+    fn duplicates_drain_and_reinsert() {
+        let mut heap = Heap::new_min();
+        for n in [3, -1, 3, 0, -1] {
+            heap.add(n);
+        }
+        let values: Vec<_> = heap.by_ref().collect();
+        assert_eq!(values, vec![-1, -1, 0, 3, 3]);
+        assert_eq!(heap.len(), 0);
+        assert_eq!(heap.next(), None);
+        heap.add(7);
+        assert_eq!(heap.next(), Some(7));
     }
 }

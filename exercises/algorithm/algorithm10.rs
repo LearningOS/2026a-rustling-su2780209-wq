@@ -1,9 +1,7 @@
 /*
-	graph
-	This problem requires you to implement a basic graph functio
+    graph
+    This problem requires you to implement a basic graph functio
 */
-// I AM NOT DONE
-
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 #[derive(Debug, Clone)]
@@ -29,7 +27,17 @@ impl Graph for UndirectedGraph {
         &self.adjacency_table
     }
     fn add_edge(&mut self, edge: (&str, &str, i32)) {
-        //TODO
+        let (from, to, weight) = edge;
+        self.add_node(from);
+        self.add_node(to);
+        self.adjacency_table_mutable()
+            .get_mut(from)
+            .unwrap()
+            .push((to.to_string(), weight));
+        self.adjacency_table_mutable()
+            .get_mut(to)
+            .unwrap()
+            .push((from.to_string(), weight));
     }
 }
 pub trait Graph {
@@ -37,11 +45,23 @@ pub trait Graph {
     fn adjacency_table_mutable(&mut self) -> &mut HashMap<String, Vec<(String, i32)>>;
     fn adjacency_table(&self) -> &HashMap<String, Vec<(String, i32)>>;
     fn add_node(&mut self, node: &str) -> bool {
-        //TODO
-		true
+        use std::collections::hash_map::Entry;
+        match self.adjacency_table_mutable().entry(node.to_string()) {
+            Entry::Vacant(entry) => {
+                entry.insert(Vec::new());
+                true
+            }
+            Entry::Occupied(_) => false,
+        }
     }
     fn add_edge(&mut self, edge: (&str, &str, i32)) {
-        //TODO
+        let (from, to, weight) = edge;
+        self.add_node(from);
+        self.add_node(to);
+        self.adjacency_table_mutable()
+            .get_mut(from)
+            .unwrap()
+            .push((to.to_string(), weight));
     }
     fn contains(&self, node: &str) -> bool {
         self.adjacency_table().get(node).is_some()
@@ -80,5 +100,21 @@ mod test_undirected_graph {
         for edge in expected_edges.iter() {
             assert_eq!(graph.edges().contains(edge), true);
         }
+    }
+}
+
+#[cfg(test)]
+mod edge_cases {
+    use super::*;
+    #[test]
+    fn nodes_and_negative_weight() {
+        let mut graph = UndirectedGraph::new();
+        assert!(graph.add_node("alone"));
+        assert!(!graph.add_node("alone"));
+        graph.add_edge(("a", "b", -3));
+        assert_eq!(graph.nodes().len(), 3);
+        assert_eq!(graph.adjacency_table()["a"], vec![("b".to_string(), -3)]);
+        assert_eq!(graph.adjacency_table()["b"], vec![("a".to_string(), -3)]);
+        assert!(graph.adjacency_table()["alone"].is_empty());
     }
 }

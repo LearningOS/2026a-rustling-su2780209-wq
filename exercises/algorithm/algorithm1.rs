@@ -1,9 +1,7 @@
 /*
-	single linked list merge
-	This problem requires you to merge two ordered singly linked lists into one ordered singly linked list
+    single linked list merge
+    This problem requires you to merge two ordered singly linked lists into one ordered singly linked list
 */
-// I AM NOT DONE
-
 use std::fmt::{self, Display, Formatter};
 use std::ptr::NonNull;
 use std::vec::*;
@@ -16,10 +14,7 @@ struct Node<T> {
 
 impl<T> Node<T> {
     fn new(t: T) -> Node<T> {
-        Node {
-            val: t,
-            next: None,
-        }
+        Node { val: t, next: None }
     }
 }
 #[derive(Debug)]
@@ -69,15 +64,39 @@ impl<T> LinkedList<T> {
             },
         }
     }
-	pub fn merge(list_a:LinkedList<T>,list_b:LinkedList<T>) -> Self
-	{
-		//TODO
-		Self {
-            length: 0,
-            start: None,
-            end: None,
+    pub fn merge(mut list_a: LinkedList<T>, mut list_b: LinkedList<T>) -> Self
+    where
+        T: Ord,
+    {
+        let mut merged = Self::new();
+        merged.length = list_a.length + list_b.length;
+        while list_a.start.is_some() || list_b.start.is_some() {
+            let take_a = match (list_a.start, list_b.start) {
+                // SAFETY: Both nodes belong to the two live, disjoint input lists.
+                (Some(a), Some(b)) => unsafe { a.as_ref().val <= b.as_ref().val },
+                (Some(_), None) => true,
+                _ => false,
+            };
+            let source = if take_a { &mut list_a } else { &mut list_b };
+            let mut node = source.start.take().unwrap();
+            // SAFETY: Ownership of this live node is transferred from source to merged.
+            unsafe {
+                source.start = node.as_ref().next;
+                node.as_mut().next = None;
+                if let Some(mut tail) = merged.end {
+                    tail.as_mut().next = Some(node);
+                } else {
+                    merged.start = Some(node);
+                }
+            }
+            merged.end = Some(node);
         }
-	}
+        list_a.end = None;
+        list_a.length = 0;
+        list_b.end = None;
+        list_b.length = 0;
+        merged
+    }
 }
 
 impl<T> Display for LinkedList<T>
@@ -130,44 +149,88 @@ mod tests {
 
     #[test]
     fn test_merge_linked_list_1() {
-		let mut list_a = LinkedList::<i32>::new();
-		let mut list_b = LinkedList::<i32>::new();
-		let vec_a = vec![1,3,5,7];
-		let vec_b = vec![2,4,6,8];
-		let target_vec = vec![1,2,3,4,5,6,7,8];
-		
-		for i in 0..vec_a.len(){
-			list_a.add(vec_a[i]);
-		}
-		for i in 0..vec_b.len(){
-			list_b.add(vec_b[i]);
-		}
-		println!("list a {} list b {}", list_a,list_b);
-		let mut list_c = LinkedList::<i32>::merge(list_a,list_b);
-		println!("merged List is {}", list_c);
-		for i in 0..target_vec.len(){
-			assert_eq!(target_vec[i],*list_c.get(i as i32).unwrap());
-		}
-	}
-	#[test]
-	fn test_merge_linked_list_2() {
-		let mut list_a = LinkedList::<i32>::new();
-		let mut list_b = LinkedList::<i32>::new();
-		let vec_a = vec![11,33,44,88,89,90,100];
-		let vec_b = vec![1,22,30,45];
-		let target_vec = vec![1,11,22,30,33,44,45,88,89,90,100];
+        let mut list_a = LinkedList::<i32>::new();
+        let mut list_b = LinkedList::<i32>::new();
+        let vec_a = vec![1, 3, 5, 7];
+        let vec_b = vec![2, 4, 6, 8];
+        let target_vec = vec![1, 2, 3, 4, 5, 6, 7, 8];
 
-		for i in 0..vec_a.len(){
-			list_a.add(vec_a[i]);
-		}
-		for i in 0..vec_b.len(){
-			list_b.add(vec_b[i]);
-		}
-		println!("list a {} list b {}", list_a,list_b);
-		let mut list_c = LinkedList::<i32>::merge(list_a,list_b);
-		println!("merged List is {}", list_c);
-		for i in 0..target_vec.len(){
-			assert_eq!(target_vec[i],*list_c.get(i as i32).unwrap());
-		}
-	}
+        for i in 0..vec_a.len() {
+            list_a.add(vec_a[i]);
+        }
+        for i in 0..vec_b.len() {
+            list_b.add(vec_b[i]);
+        }
+        println!("list a {} list b {}", list_a, list_b);
+        let mut list_c = LinkedList::<i32>::merge(list_a, list_b);
+        println!("merged List is {}", list_c);
+        for i in 0..target_vec.len() {
+            assert_eq!(target_vec[i], *list_c.get(i as i32).unwrap());
+        }
+    }
+    #[test]
+    fn test_merge_linked_list_2() {
+        let mut list_a = LinkedList::<i32>::new();
+        let mut list_b = LinkedList::<i32>::new();
+        let vec_a = vec![11, 33, 44, 88, 89, 90, 100];
+        let vec_b = vec![1, 22, 30, 45];
+        let target_vec = vec![1, 11, 22, 30, 33, 44, 45, 88, 89, 90, 100];
+
+        for i in 0..vec_a.len() {
+            list_a.add(vec_a[i]);
+        }
+        for i in 0..vec_b.len() {
+            list_b.add(vec_b[i]);
+        }
+        println!("list a {} list b {}", list_a, list_b);
+        let mut list_c = LinkedList::<i32>::merge(list_a, list_b);
+        println!("merged List is {}", list_c);
+        for i in 0..target_vec.len() {
+            assert_eq!(target_vec[i], *list_c.get(i as i32).unwrap());
+        }
+    }
+}
+impl<T> Drop for LinkedList<T> {
+    fn drop(&mut self) {
+        let mut current = self.start.take();
+        while let Some(node) = current {
+            // SAFETY: Each node was allocated by Box::into_raw, is owned by this list,
+            // and is reconstructed exactly once. Save the next pointer before dropping it.
+            unsafe {
+                let owned = Box::from_raw(node.as_ptr());
+                current = owned.next;
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod edge_cases {
+    use super::*;
+    #[test]
+    fn empty_duplicate_and_owned_values() {
+        let empty = LinkedList::<String>::new();
+        let mut b = LinkedList::new();
+        b.add("a".to_string());
+        b.add("a".to_string());
+        let mut merged = LinkedList::merge(empty, b);
+        assert_eq!(merged.length, 2);
+        assert_eq!(merged.get(1).map(String::as_str), Some("a"));
+        let empty = LinkedList::merge(LinkedList::<i32>::new(), LinkedList::new());
+        assert_eq!(empty.length, 0);
+    }
+    #[test]
+    fn releases_transferred_nodes() {
+        let value = std::rc::Rc::new(1);
+        {
+            let mut a = LinkedList::new();
+            a.add(value.clone());
+            let mut b = LinkedList::new();
+            b.add(value.clone());
+            let merged = LinkedList::merge(a, b);
+            assert_eq!(merged.length, 2);
+            assert_eq!(std::rc::Rc::strong_count(&value), 3);
+        }
+        assert_eq!(std::rc::Rc::strong_count(&value), 1);
+    }
 }
